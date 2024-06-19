@@ -1,0 +1,9 @@
+Release Notes TMF8806 Linux Driver
+----------------------------------------
+1v3
+- firmware download 
+1v2 
+- output data now has a 4 byte header: content ID, transaction ID, size LSB, size MSB
+  
+1v1 
+- initial customer release

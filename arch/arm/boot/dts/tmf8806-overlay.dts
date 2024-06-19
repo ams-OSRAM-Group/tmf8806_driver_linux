@@ -1,0 +1,83 @@
+/*
+ *****************************************************************************
+ * Copyright by ams OSRAM AG                                                 *
+ * All rights are reserved.                                                  *
+ *                                                                           *
+ * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
+ * THE SOFTWARE.                                                             *
+ *                                                                           *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT         *
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS         *
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT  *
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,     *
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT          *
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,     *
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY     *
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT       *
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE     *
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.      *
+ *****************************************************************************
+ */
+
+/* Definitions for TOF8806 time-of-flight sensor from ams AG
+ *
+ * Compile:
+ * dtc -@ -I dts -O dtb -o tof8806-overlay.dtbo tof8806-overlay.dts
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+  compatible = "brcm,bcm2835","brcm,bcm2708","brcm,bcm2709";
+
+  fragment@0 {
+    target = <&i2c1>;
+    __overlay__ {
+      status = "okay";
+    };
+  };
+
+  fragment@1 {
+    target = <&gpio>;
+    __overlay__ {
+      tof8806_pins: tof8806_pins {
+        brcm,pins = <20 16>; /*interrupt, enable*/
+        brcm,function = <0 1>; /*INT input, enable output*/
+        brcm,pull = <2 0>; /*disable pull on INT, enable pull-down on CE*/
+      };
+    };
+  };
+
+  fragment@2 {
+    target = <&i2c1>;
+    __overlay__ {
+      #address-cells = <1>;
+      #size-cells = <0>;
+      status = "okay";
+
+      tof8806: tof8806@41 {
+        compatible = "ams,tof8806";
+        reg = <0x41>; /* x41 for HW, x39 for test chip */
+        pinctrl-names = "default";
+        pinctrl-0 = <&tof8806_pins>;
+        interrupt-parent = <&gpio>;
+        interrupts = <20 8>; /*high-to-low trigger*/
+        irq-gpios = <&gpio 20 0>; /*pin38 on header*/
+        enable-gpios = <&gpio 16 0>; /*pin36 on header*/
+      };
+    };
+  };
+
+  __overrides__ {
+    tof_interrupt = <&tof8806_pins>,"brcm,pins:0",
+        <&tof8806>,"interrupts:0",
+        <&tof8806>,"irq-gpios:4";
+    tof_interrupt_trigger = <&tof8806>,"interrupts:4";
+    tof_enable = <&tof8806_pins>,"brcm,pins:4",
+        <&tof8806>,"enable-gpios:4";
+    tof_i2c_addr = <&tof8806>,"reg:0";
+  };
+};
+
